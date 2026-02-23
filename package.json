@@ -28,6 +28,6 @@
     "@types/react": "^18.2.48",
     "@types/styled-components": "^5.1.31",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.9.3"
+    "typescript": "^5.2.2"
   }
 }
