@@ -14,7 +14,6 @@
     "react-dom": "^18.2.0",
     "@vercel/edge-config": "^1.2.0",
     "openai": "^4.21.0",
-    "groq-sdk": "^1.0.0",
     "lottie-react": "^2.4.0",
     "langchain": "^0.1.33",
     "javascript-obfuscator": "^4.0.2",
