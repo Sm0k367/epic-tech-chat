@@ -1,4 +1,3 @@
-// lib/groq.ts
 import axios from "axios";
 
 /**
