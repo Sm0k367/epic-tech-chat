@@ -2,7 +2,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { groqChat } from '../../lib/groq'
 import { v4 as uuidv4 } from 'uuid'
-import fetch from "node-fetch";
 
 const SYSTEM_PROMPT = `
 You are Epic Tech AI: ultra-human, playful, inventive, and never boring.
@@ -17,9 +16,9 @@ async function handleSlash(command: string, rest: string) {
   const arg = rest.trim();
   switch (command) {
     case '/joke':
-      return "What’s an AI’s favorite genre? Algo-rhythm!";
+      return "What's an AI's favorite genre? Algo-rhythm!";
     case '/meme':
-      return `![meme](https://api.memegen.link/images/custom/_/${encodeURIComponent(arg)}.png?background=none)`
+      return `![meme](https://api.memegen.link/images/custom/_/${encodeURIComponent(arg || 'epic_tech_chat')}.png?background=none)`
     case '/gif':
       return `Here's a trending GIF for "${arg}" [Giphy integration preview]`;
     case '/aiart':
@@ -39,9 +38,9 @@ async function handleSlash(command: string, rest: string) {
     case '/vote':
       return `Vote started: "${arg}" (polling and buttons coming soon!)`;
     case '/riddle':
-      return "I have keys but can’t open locks. What am I? (A piano!)";
+      return "I have keys but can't open locks. What am I? (A piano!)";
     case '/quiz':
-      return "Quick quiz! What’s the capital of Belgium? (Brussels)";
+      return "Quick quiz! What's the capital of Belgium? (Brussels)";
     case '/emoji-battle':
       return "🔥 vs 🤖 — which one wins? React below!";
     case '/streak':
@@ -49,7 +48,7 @@ async function handleSlash(command: string, rest: string) {
     case '/randomfact':
       return "Random fact: A group of flamingos is called a 'flamboyance.'";
     case '/roastme':
-      return "You’re so extra, even Stack Overflow gave up!";
+      return "You're so extra, even Stack Overflow gave up!";
     case '/konami':
       return "🕹️ Secret code unlocked! (Up, up, down, down...)";
     case '/matrix':
@@ -60,6 +59,10 @@ async function handleSlash(command: string, rest: string) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   const { input, history = [], vision = null, slash = null } = req.body;
 
   // Slash commands processed directly

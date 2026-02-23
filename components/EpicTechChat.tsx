@@ -1,14 +1,16 @@
 // components/EpicTechChat.tsx
 import React, { useState, useRef, useEffect } from "react";
 import { v4 as uuidv4 } from "uuid";
-import Lottie from "lottie-react";
-import AvatarAnimation from "../public/avatar.json"; // Add your custom Lottie avatar json
+import dynamic from "next/dynamic";
 import axios from "axios";
 
-const getSpeechRecognition = () =>
-  window.SpeechRecognition || window.webkitSpeechRecognition;
+// Dynamically import Lottie to avoid SSR issues
+const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
 
-const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+const getSpeechRecognition = () => {
+  if (typeof window === "undefined") return null;
+  return (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+};
 
 function streakBadge(count: number) {
   if (count >= 7) return <span className="badge gold">🔥 EPIC STREAK {count}!</span>;
@@ -18,21 +20,38 @@ function streakBadge(count: number) {
 
 export default function EpicTechChat() {
   const [messages, setMessages] = useState([
-    { id: uuidv4(), role: "bot", content: "Yo! I’m Epic Tech AI. Type, talk, /meme, drop images—let’s GO! 🔥" },
+    { id: uuidv4(), role: "bot", content: "Yo! I'm Epic Tech AI. Type, talk, /meme, drop images—let's GO! 🔥" },
   ]);
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [streak, setStreak] = useState(() => Number(localStorage.getItem("epic-streak") || 1));
+  const [streak, setStreak] = useState(1);
+  const [avatarData, setAvatarData] = useState<any>(null);
   const recognitionRef = useRef<any>(null);
+  const synthRef = useRef<SpeechSynthesis | null>(null);
+
+  // Initialize browser-only features
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      synthRef.current = window.speechSynthesis;
+      const savedStreak = localStorage.getItem("epic-streak");
+      if (savedStreak) {
+        setStreak(Number(savedStreak));
+      }
+      // Load avatar animation
+      import("../public/avatar.json")
+        .then((data) => setAvatarData(data.default))
+        .catch(() => console.log("Avatar animation not found"));
+    }
+  }, []);
 
   // Voice out (TTS)
   const speak = (text: string) => {
-    if (synth) {
-      const utter = new window.SpeechSynthesisUtterance(text.replace(/![^\s]+\.png[^)]*/g, "")); // skip meme previews
+    if (synthRef.current && typeof window !== "undefined") {
+      const utter = new window.SpeechSynthesisUtterance(text.replace(/!\[^\\s]+\.png[^)]*/g, "")); // skip meme previews
       utter.rate = 1.04;
-      synth.cancel();
-      synth.speak(utter);
+      synthRef.current.cancel();
+      synthRef.current.speak(utter);
     }
   };
 
@@ -66,13 +85,16 @@ export default function EpicTechChat() {
       ]);
       speak(msgOut);
       // Increment streak
-      if (Date.now() - Number(localStorage.getItem("last-streak")) > 60 * 60 * 1000) {
-        setStreak(s => {
-          const newStreak = s + 1;
-          localStorage.setItem("epic-streak", String(newStreak));
-          localStorage.setItem("last-streak", String(Date.now()));
-          return newStreak;
-        });
+      if (typeof window !== "undefined") {
+        const lastStreak = Number(localStorage.getItem("last-streak") || 0);
+        if (Date.now() - lastStreak > 60 * 60 * 1000) {
+          setStreak(s => {
+            const newStreak = s + 1;
+            localStorage.setItem("epic-streak", String(newStreak));
+            localStorage.setItem("last-streak", String(Date.now()));
+            return newStreak;
+          });
+        }
       }
     } catch (err: any) {
       setMessages((msgs) => [
@@ -123,7 +145,7 @@ export default function EpicTechChat() {
   return (
     <div className="epic-chat-wrapper" onDrop={handleFileDrop} onDragOver={e => e.preventDefault()}>
       <div className="epic-chat-header">
-        <Lottie animationData={AvatarAnimation} style={{ width: 80, height: 80 }} />
+        {avatarData && <Lottie animationData={avatarData} style={{ width: 80, height: 80 }} />}
         <h2>Epic Tech Chat</h2>
         <button
           className={listening ? "listening-btn-on" : ""}
@@ -171,7 +193,8 @@ export default function EpicTechChat() {
         .epic-chat-box { display: flex; gap: 7px; margin-bottom: 5px; }
         .epic-chat-box input { flex: 1; background: #222; border: none; border-radius: 6px; padding: 14px; color: #fff; }
         .epic-chat-box input:disabled { background: #2b2b2b; }
-        .epic-chat-box button { background: #f21d48; color: #fff; border: none; border-radius: 6px; padding: 0 19px; font-weight: bold; }
+        .epic-chat-box button { background: #f21d48; color: #fff; border: none; border-radius: 6px; padding: 0 19px; font-weight: bold; cursor: pointer; }
+        .epic-chat-box button:disabled { opacity: 0.5; cursor: not-allowed; }
         img { max-height: 120px; }
       `}</style>
     </div>
