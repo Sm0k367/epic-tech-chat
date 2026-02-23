@@ -1,0 +1,12 @@
+[
+  { "name": "fire", "emoji": "🔥" },
+  { "name": "party", "emoji": "🥳" },
+  { "name": "robot", "emoji": "🤖" },
+  { "name": "wave", "emoji": "🌊" },
+  { "name": "skull", "emoji": "💀" },
+  { "name": "star", "emoji": "⭐" },
+  { "name": "crown", "emoji": "👑" },
+  { "name": "brain", "emoji": "🧠" },
+  { "name": "tech", "emoji": "💻" },
+  { "name": "sunglasses", "emoji": "😎" }
+]
