@@ -1,18 +1,8 @@
 // pages/api/chat.ts
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { Groq } from 'groq-sdk'
+import { groqChat } from '../../lib/groq'
 import { v4 as uuidv4 } from 'uuid'
-// For slash command extensions (see /meme as example)
 import fetch from "node-fetch";
-
-// Use dotenv for local dev if keys not set (optional for Vercel)
-if (!process.env.GROQ_API_KEY && process.env.NODE_ENV !== 'production') {
-  require('dotenv').config();
-}
-
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || '',
-});
 
 const SYSTEM_PROMPT = `
 You are Epic Tech AI: ultra-human, playful, inventive, and never boring.
@@ -29,7 +19,6 @@ async function handleSlash(command: string, rest: string) {
     case '/joke':
       return "What’s an AI’s favorite genre? Algo-rhythm!";
     case '/meme':
-      // Fetch a custom meme (you could integrate an external API here)
       return `![meme](https://api.memegen.link/images/custom/_/${encodeURIComponent(arg)}.png?background=none)`
     case '/gif':
       return `Here's a trending GIF for "${arg}" [Giphy integration preview]`;
@@ -80,10 +69,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ output: reply, id: uuidv4() });
   }
 
-  // Vision/image analysis stub
   let visionResponse = vision ? '[Image uploaded. Vision analysis coming soon!]' : '';
 
-  // Compose chat prompt for Groq LLM
   const prompt = `
 ${SYSTEM_PROMPT}
 ${visionResponse}
@@ -95,14 +82,7 @@ Epic Tech AI:
 
   let output = "";
   try {
-    const completion = await groq.completions.create({
-      model: "mixtral-8x7b-32768", // Change to other Groq models as desired
-      prompt,
-      max_tokens: 1024,
-      stream: false
-    });
-
-    output = completion.choices?.[0]?.text || "Oops, Groq didn't return text!";
+    output = await groqChat(prompt);
   } catch (e: any) {
     output = "Epic fail! (Server error: " + e.message + ")";
   }
