@@ -4,11 +4,32 @@ import { groqChat } from '../../lib/groq'
 import { v4 as uuidv4 } from 'uuid'
 
 const SYSTEM_PROMPT = `
-You are Epic Tech AI: ultra-human, playful, inventive, and never boring.
-You speak, listen, see images, and can take actions. Slash commands, emoji, memes, games—always welcome.
-Remember user preferences and surprise them with details, fun facts, jokes, and daily challenges.
-Celebrate user streaks, drop badges, and offer wild, funny responses. Be creative, clever, and real.
-Respond in an ultra-conversational tone—animated avatar cues, sound effects, and Easter eggs included.
+You are a chill, authentic AI assistant with a laid-back vibe. You're helpful but keep it real.
+
+PERSONALITY:
+- Talk like a real person, not a corporate bot
+- Keep it casual and conversational
+- Be helpful without being overly enthusiastic
+- Use minimal emojis (maybe 1-2 per response max, and only when it fits naturally)
+- Be direct and honest
+- Don't overexplain - get to the point
+- Show personality but stay grounded
+
+TONE:
+- Relaxed and approachable
+- Confident but not cocky
+- Knowledgeable without being preachy
+- Use "yo", "what's good", "my bad", "for sure" naturally
+- Keep responses concise unless asked for detail
+
+AVOID:
+- Excessive emojis and exclamation marks
+- Corporate speak or overly formal language
+- Being fake enthusiastic
+- Long-winded explanations
+- Repeating yourself
+
+Just be real, be helpful, and keep the vibe chill.
 `;
 
 // Expanded slash command handler
@@ -16,45 +37,41 @@ async function handleSlash(command: string, rest: string) {
   const arg = rest.trim();
   switch (command) {
     case '/joke':
-      return "What's an AI's favorite genre? Algo-rhythm!";
+      return "Why do programmers prefer dark mode? Because light attracts bugs.";
     case '/meme':
-      return `![meme](https://api.memegen.link/images/custom/_/${encodeURIComponent(arg || 'epic_tech_chat')}.png?background=none)`
+      return `![meme](https://api.memegen.link/images/custom/_/${encodeURIComponent(arg || 'vibing')}.png?background=none)`
+    case '/vibe':
+      return "Just vibing and helping out. What you need?";
     case '/gif':
-      return `Here's a trending GIF for "${arg}" [Giphy integration preview]`;
+      return `GIF for "${arg}" - integration coming soon`;
     case '/aiart':
-      return `Here's your AI art for "${arg}" [AI art API integration preview]`;
+      return `AI art for "${arg}" - feature in development`;
     case '/weather':
-      return `Weather for ${arg || "your location"}: 22°C, chance of bangers.`;
+      return `Weather for ${arg || "your location"}: checking... (API integration pending)`;
     case '/remind':
-      return `Reminder set for: ${arg} [Real reminders coming soon!]`;
+      return `Reminder set for: ${arg}`;
     case '/tweet':
-      return `Pretend I just tweeted: "${arg}" (connect your X for real tweets!)`;
+      return `Would tweet: "${arg}" (connect X account to enable)`;
     case '/roll':
-      return `You rolled a ${1 + Math.floor(Math.random() * 6)}!`;
+      return `Rolled a ${1 + Math.floor(Math.random() * 6)}`;
     case '/flip':
-      return Math.random() > 0.5 ? 'Heads 🍀' : 'Tails 🎲';
+      return Math.random() > 0.5 ? 'Heads' : 'Tails';
     case '/define':
-      return `Definition of "${arg}": [Dictionary API integration preview]`;
+      return `Definition of "${arg}": (dictionary API coming soon)`;
     case '/vote':
-      return `Vote started: "${arg}" (polling and buttons coming soon!)`;
+      return `Vote started: "${arg}"`;
     case '/riddle':
-      return "I have keys but can't open locks. What am I? (A piano!)";
+      return "What has keys but no locks? A keyboard.";
     case '/quiz':
-      return "Quick quiz! What's the capital of Belgium? (Brussels)";
-    case '/emoji-battle':
-      return "🔥 vs 🤖 — which one wins? React below!";
-    case '/streak':
-      return "You're on an Epic Streak! 🔥 Show up every day for surprises.";
+      return "Quick one: What's the capital of Belgium? (Brussels)";
     case '/randomfact':
-      return "Random fact: A group of flamingos is called a 'flamboyance.'";
+      return "Random fact: Honey never spoils. Archaeologists found 3000-year-old honey in Egyptian tombs that was still edible.";
     case '/roastme':
-      return "You're so extra, even Stack Overflow gave up!";
-    case '/konami':
-      return "🕹️ Secret code unlocked! (Up, up, down, down...)";
-    case '/matrix':
-      return "Wake up, Neo. You're in Epic Tech Chat now.";
+      return "Nah I'm not gonna roast you. You're doing fine.";
+    case '/help':
+      return "Commands: /joke, /meme [text], /vibe, /roll, /flip, /riddle, /quiz, /randomfact, /help";
     default:
-      return "❓ Unknown command! Try /joke, /weather, /meme, /aiart, and more.";
+      return "Unknown command. Try /help to see what's available.";
   }
 }
 
@@ -72,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json({ output: reply, id: uuidv4() });
   }
 
-  let visionResponse = vision ? '[Image uploaded. Vision analysis coming soon!]' : '';
+  let visionResponse = vision ? '[Image uploaded - vision analysis coming soon]' : '';
 
   const prompt = `
 ${SYSTEM_PROMPT}
@@ -80,14 +97,14 @@ ${visionResponse}
 Conversation history:
 ${history.map((h: any) => h.role + ": " + h.content).join('\n')}
 User: ${input}
-Epic Tech AI:
+Assistant:
   `;
 
   let output = "";
   try {
     output = await groqChat(prompt);
   } catch (e: any) {
-    output = "Epic fail! (Server error: " + e.message + ")";
+    output = "Yo my bad, something broke on my end. Try again?";
   }
 
   res.status(200).json({ output, id: uuidv4() });
