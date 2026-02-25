@@ -30,15 +30,18 @@ const SLASH_COMMANDS = [
   { cmd: '/define', desc: 'Define a word' },
 ];
 
+type BotMode = 'ai' | 'telegram';
+
 export default function EpicTechChat() {
   const [messages, setMessages] = useState([
-    { id: uuidv4(), role: "bot", content: "Yo what's good. I'm here to vibe and help out. What you need?" },
+    { id: uuidv4(), role: "bot", content: "Yo what's good. I'm here to vibe and help out. What you need?", botType: 'ai' as BotMode },
   ]);
   const [input, setInput] = useState("");
   const [listening, setListening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [voiceGender, setVoiceGender] = useState<'male' | 'female'>('male');
+  const [botMode, setBotMode] = useState<BotMode>('ai');
   const [showInstructions, setShowInstructions] = useState(false);
   const [showMediaPlayer, setShowMediaPlayer] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -137,18 +140,27 @@ export default function EpicTechChat() {
   async function sendMessage(payload: any) {
     setLoading(true);
     try {
-      const { data } = await axios.post("/api/chat", payload);
+      const endpoint = botMode === 'telegram' ? '/api/telegram' : '/api/chat';
+      const requestData = botMode === 'telegram' 
+        ? { message: payload.input, chatId: null }
+        : payload;
+
+      const { data } = await axios.post(endpoint, requestData);
       let msgOut = data.output;
+      
       setMessages((msgs) => [
         ...msgs,
-        { id: uuidv4(), role: "user", content: payload.input },
-        { id: uuidv4(), role: "bot", content: msgOut },
+        { id: uuidv4(), role: "user", content: payload.input, botType: botMode },
+        { id: uuidv4(), role: "bot", content: msgOut, botType: botMode },
       ]);
       speak(msgOut);
     } catch (err: any) {
+      const errorMsg = botMode === 'telegram' 
+        ? "Couldn't reach the Telegram bot. Make sure it's configured in Vercel."
+        : "Yo my bad, something broke. Try again?";
       setMessages((msgs) => [
         ...msgs,
-        { id: uuidv4(), role: "bot", content: "Yo my bad, something broke. Try again?" }
+        { id: uuidv4(), role: "bot", content: errorMsg, botType: botMode }
       ]);
     }
     setLoading(false);
@@ -206,10 +218,28 @@ export default function EpicTechChat() {
               {avatarData && <Lottie animationData={avatarData} style={{ width: 60, height: 60 }} />}
               <div>
                 <h2>Epic Tech Chat</h2>
-                <span className="status">Online • Vibing</span>
+                <span className="status">
+                  {botMode === 'ai' ? 'AI Mode' : 'Telegram Bot'} • Online
+                </span>
               </div>
             </div>
             <div className="header-controls">
+              <div className="bot-switcher">
+                <button
+                  className={`bot-mode-btn ${botMode === 'ai' ? 'active' : ''}`}
+                  onClick={() => setBotMode('ai')}
+                  title="Web AI"
+                >
+                  🤖 AI
+                </button>
+                <button
+                  className={`bot-mode-btn ${botMode === 'telegram' ? 'active' : ''}`}
+                  onClick={() => setBotMode('telegram')}
+                  title="Telegram Bot"
+                >
+                  ✈️ Telegram
+                </button>
+              </div>
               <button
                 className="control-btn"
                 onClick={() => setShowMediaPlayer(!showMediaPlayer)}
@@ -238,32 +268,48 @@ export default function EpicTechChat() {
           {showInstructions && (
             <div className="instructions-panel">
               <h3>How to Use Epic Tech Chat</h3>
+              
+              <div className="instruction-section">
+                <h4>🤖 Dual Bot System</h4>
+                <ul>
+                  <li><strong>AI Mode:</strong> Chat with the web-based AI assistant</li>
+                  <li><strong>Telegram Mode:</strong> Send messages to @EPICTHE_BOT on Telegram</li>
+                  <li>Switch between bots anytime with the toggle buttons</li>
+                  <li>Each bot has its own personality and capabilities</li>
+                </ul>
+              </div>
+
               <div className="instruction-section">
                 <h4>💬 Chat Features</h4>
                 <ul>
-                  <li>Type normally to chat with AI</li>
+                  <li>Type normally to chat with the selected bot</li>
                   <li>Use slash commands for special features</li>
-                  <li>Drag & drop images to analyze them</li>
+                  <li>Drag & drop images to analyze them (AI mode)</li>
                   <li>Click 🎤 to use voice input</li>
                 </ul>
               </div>
+              
               <div className="instruction-section">
                 <h4>🎵 Media Player</h4>
                 <ul>
-                  <li>Click 🎵 to open media player</li>
-                  <li>Upload audio/video files</li>
-                  <li>Create playlists while chatting</li>
-                  <li>Drag player anywhere on screen</li>
+                  <li>Click 🎵 to open the floating media player</li>
+                  <li>Upload audio/video files to play while chatting</li>
+                  <li>Create playlists with multiple files</li>
+                  <li>Drag the player anywhere on screen</li>
+                  <li>Full playback controls with volume and seeking</li>
                 </ul>
               </div>
+              
               <div className="instruction-section">
                 <h4>🔊 Voice Settings</h4>
                 <ul>
-                  <li>Toggle voice responses on/off</li>
-                  <li>Choose male or female voice</li>
+                  <li>Toggle voice responses on/off in Settings</li>
+                  <li>Choose between male or female voice</li>
                   <li>Natural-sounding speech synthesis</li>
+                  <li>Voice input available with 🎤 button</li>
                 </ul>
               </div>
+              
               <div className="instruction-section">
                 <h4>⚡ Slash Commands</h4>
                 <div className="command-grid">
@@ -275,6 +321,17 @@ export default function EpicTechChat() {
                   ))}
                 </div>
               </div>
+
+              <div className="instruction-section">
+                <h4>✈️ Telegram Bot Setup</h4>
+                <ul>
+                  <li>Open Telegram and search for <strong>@EPICTHE_BOT</strong></li>
+                  <li>Start a chat with the bot on Telegram</li>
+                  <li>Switch to Telegram mode in this web app</li>
+                  <li>Your messages will be sent to the Telegram bot</li>
+                  <li>Check Telegram for the bot's responses</li>
+                </ul>
+              </div>
             </div>
           )}
 
@@ -282,6 +339,25 @@ export default function EpicTechChat() {
           {showSettings && (
             <div className="settings-panel">
               <h3>Settings</h3>
+              
+              <div className="setting-item">
+                <label>Active Bot</label>
+                <div className="bot-switcher-setting">
+                  <button
+                    className={`bot-mode-btn ${botMode === 'ai' ? 'active' : ''}`}
+                    onClick={() => setBotMode('ai')}
+                  >
+                    🤖 Web AI
+                  </button>
+                  <button
+                    className={`bot-mode-btn ${botMode === 'telegram' ? 'active' : ''}`}
+                    onClick={() => setBotMode('telegram')}
+                  >
+                    ✈️ Telegram
+                  </button>
+                </div>
+              </div>
+
               <div className="setting-item">
                 <label>Voice Responses</label>
                 <button
@@ -291,17 +367,20 @@ export default function EpicTechChat() {
                   {voiceEnabled ? 'ON' : 'OFF'}
                 </button>
               </div>
+              
               <div className="setting-item">
                 <label>Voice Gender</label>
                 <select 
                   value={voiceGender} 
                   onChange={(e) => setVoiceGender(e.target.value as 'male' | 'female')}
                   className="voice-select"
+                  disabled={!voiceEnabled}
                 >
                   <option value="male">Male Voice</option>
                   <option value="female">Female Voice</option>
                 </select>
               </div>
+              
               <div className="setting-item">
                 <label>Voice Input</label>
                 <button
@@ -311,6 +390,14 @@ export default function EpicTechChat() {
                   🎤 {listening ? 'Listening...' : 'Click to speak'}
                 </button>
               </div>
+
+              {botMode === 'telegram' && (
+                <div className="telegram-info">
+                  <p><strong>Telegram Bot:</strong> @EPICTHE_BOT</p>
+                  <p>Messages sent here will be forwarded to your Telegram bot.</p>
+                  <p>Check Telegram for responses!</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -318,13 +405,18 @@ export default function EpicTechChat() {
           <div className="epic-chat-log">
             {messages.map(msg =>
               <div key={msg.id} className={`epic-msg ${msg.role}`}>
-                <div className="msg-content">
+                <div className={`msg-content ${msg.botType === 'telegram' ? 'telegram' : 'ai'}`}>
+                  {msg.role === 'bot' && (
+                    <div className="bot-badge">
+                      {msg.botType === 'telegram' ? '✈️ Telegram' : '🤖 AI'}
+                    </div>
+                  )}
                   {renderContent(msg.content)}
                 </div>
               </div>
             )}
             {loading && <div className="epic-msg bot loading">
-              <div className="msg-content">
+              <div className={`msg-content ${botMode === 'telegram' ? 'telegram' : 'ai'}`}>
                 <span className="typing-indicator">
                   <span></span><span></span><span></span>
                 </span>
@@ -362,14 +454,19 @@ export default function EpicTechChat() {
             }}
             className="epic-chat-box"
           >
-            <input
-              ref={inputRef}
-              disabled={loading}
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              autoFocus
-              placeholder="Type your message... or try /help for commands"
-            />
+            <div className="input-wrapper">
+              <div className="bot-indicator">
+                {botMode === 'ai' ? '🤖' : '✈️'}
+              </div>
+              <input
+                ref={inputRef}
+                disabled={loading}
+                value={input}
+                onChange={e => setInput(e.target.value)}
+                autoFocus
+                placeholder={botMode === 'ai' ? "Type your message... or try /help" : "Message to @EPICTHE_BOT..."}
+              />
+            </div>
             <button type="submit" disabled={loading || !input} className="send-btn">
               {loading ? '...' : '→'}
             </button>
@@ -441,6 +538,40 @@ export default function EpicTechChat() {
         .header-controls {
           display: flex;
           gap: 10px;
+          align-items: center;
+        }
+
+        .bot-switcher {
+          display: flex;
+          gap: 6px;
+          background: rgba(79, 172, 254, 0.1);
+          padding: 4px;
+          border-radius: 12px;
+          border: 1px solid rgba(79, 172, 254, 0.2);
+        }
+
+        .bot-mode-btn {
+          padding: 8px 16px;
+          border: none;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.6);
+          border-radius: 8px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          white-space: nowrap;
+        }
+
+        .bot-mode-btn:hover {
+          color: #fff;
+          background: rgba(79, 172, 254, 0.15);
+        }
+
+        .bot-mode-btn.active {
+          background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+          color: #0a0a0a;
+          box-shadow: 0 2px 10px rgba(79, 172, 254, 0.4);
         }
 
         .control-btn {
@@ -477,29 +608,29 @@ export default function EpicTechChat() {
           background: rgba(20, 20, 35, 0.95);
           border-bottom: 1px solid rgba(79, 172, 254, 0.2);
           padding: 24px 28px;
-          max-height: 300px;
+          max-height: 400px;
           overflow-y: auto;
           animation: slideDown 0.3s ease-out;
         }
 
         @keyframes slideDown {
           from { max-height: 0; opacity: 0; }
-          to { max-height: 300px; opacity: 1; }
+          to { max-height: 400px; opacity: 1; }
         }
 
         .instructions-panel h3, .settings-panel h3 {
-          margin: 0 0 16px 0;
-          font-size: 18px;
+          margin: 0 0 20px 0;
+          font-size: 20px;
           color: #4facfe;
         }
 
         .instruction-section {
-          margin-bottom: 20px;
+          margin-bottom: 24px;
         }
 
         .instruction-section h4 {
-          margin: 0 0 8px 0;
-          font-size: 14px;
+          margin: 0 0 10px 0;
+          font-size: 15px;
           color: #00f2fe;
         }
 
@@ -509,6 +640,10 @@ export default function EpicTechChat() {
           font-size: 13px;
           line-height: 1.8;
           color: rgba(255, 255, 255, 0.8);
+        }
+
+        .instruction-section strong {
+          color: #4facfe;
         }
 
         .command-grid {
@@ -542,7 +677,7 @@ export default function EpicTechChat() {
           justify-content: space-between;
           align-items: center;
           margin-bottom: 16px;
-          padding: 12px;
+          padding: 14px;
           background: rgba(79, 172, 254, 0.05);
           border-radius: 10px;
         }
@@ -550,10 +685,16 @@ export default function EpicTechChat() {
         .setting-item label {
           font-size: 14px;
           color: rgba(255, 255, 255, 0.9);
+          font-weight: 500;
+        }
+
+        .bot-switcher-setting {
+          display: flex;
+          gap: 8px;
         }
 
         .toggle-btn {
-          padding: 6px 20px;
+          padding: 8px 24px;
           border: 1px solid rgba(79, 172, 254, 0.3);
           background: rgba(79, 172, 254, 0.1);
           color: #fff;
@@ -579,9 +720,29 @@ export default function EpicTechChat() {
           font-size: 14px;
         }
 
+        .voice-select:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .voice-select option {
           background: #1a1a2e;
           color: #fff;
+        }
+
+        .telegram-info {
+          margin-top: 16px;
+          padding: 16px;
+          background: rgba(0, 136, 204, 0.1);
+          border: 1px solid rgba(0, 136, 204, 0.3);
+          border-radius: 10px;
+          font-size: 13px;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .telegram-info strong {
+          color: #00f2fe;
         }
 
         .epic-chat-log {
@@ -632,11 +793,25 @@ export default function EpicTechChat() {
           line-height: 1.6;
           word-break: break-word;
           font-size: 15px;
+          position: relative;
         }
 
-        .epic-msg.bot .msg-content {
+        .bot-badge {
+          font-size: 11px;
+          color: rgba(255, 255, 255, 0.6);
+          margin-bottom: 6px;
+          font-weight: 600;
+        }
+
+        .epic-msg.bot .msg-content.ai {
           background: linear-gradient(135deg, rgba(79, 172, 254, 0.15) 0%, rgba(0, 242, 254, 0.1) 100%);
           border: 1px solid rgba(79, 172, 254, 0.25);
+          color: #e8e8e8;
+        }
+
+        .epic-msg.bot .msg-content.telegram {
+          background: linear-gradient(135deg, rgba(0, 136, 204, 0.15) 0%, rgba(0, 168, 255, 0.1) 100%);
+          border: 1px solid rgba(0, 136, 204, 0.25);
           color: #e8e8e8;
         }
 
@@ -684,6 +859,7 @@ export default function EpicTechChat() {
           overflow: hidden;
           box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.5);
           animation: slideUp 0.2s ease-out;
+          z-index: 10;
         }
 
         @keyframes slideUp {
@@ -727,22 +903,37 @@ export default function EpicTechChat() {
           border-top: 1px solid rgba(79, 172, 254, 0.2);
         }
 
-        .epic-chat-box input {
+        .input-wrapper {
           flex: 1;
+          display: flex;
+          align-items: center;
+          gap: 12px;
           background: rgba(79, 172, 254, 0.08);
           border: 1px solid rgba(79, 172, 254, 0.25);
           border-radius: 16px;
-          padding: 16px 20px;
-          color: #fff;
-          font-size: 15px;
+          padding: 0 20px;
           transition: all 0.3s ease;
         }
 
-        .epic-chat-box input:focus {
-          outline: none;
+        .input-wrapper:focus-within {
           border-color: #4facfe;
           background: rgba(79, 172, 254, 0.12);
           box-shadow: 0 0 25px rgba(79, 172, 254, 0.25);
+        }
+
+        .bot-indicator {
+          font-size: 20px;
+          opacity: 0.7;
+        }
+
+        .epic-chat-box input {
+          flex: 1;
+          background: transparent;
+          border: none;
+          padding: 16px 0;
+          color: #fff;
+          font-size: 15px;
+          outline: none;
         }
 
         .epic-chat-box input:disabled {
@@ -797,6 +988,11 @@ export default function EpicTechChat() {
 
           .command-grid {
             grid-template-columns: 1fr;
+          }
+
+          .bot-switcher {
+            flex-direction: column;
+            gap: 4px;
           }
         }
       `}</style>
